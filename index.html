@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlindPath | Accessible Mobility</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+:root {
+  --green: #176b5b;
+  --green-dark: #104b41;
+  --mint: #eaf5f1;
+  --ink: #193b36;
+  --white: #ffffff;
+  --border: #d5e5df;
+  --red: #d32f2f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: var(--ink);
+  background: #f7faf8;
+  line-height: 1.5;
+}
+header {
+  background: var(--green);
+  color: white;
+  padding: 16px 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.brand { font-size: 24px; font-weight: 800; }
+header button {
+  background: white;
+  color: var(--green-dark);
+}
+main {
+  max-width: 1000px;
+  padding: 24px 16px 50px;
+  margin: auto;
+}
+h1, h2, h3 { line-height: 1.25; }
+h1 { font-size: clamp(28px, 5vw, 42px); }
+p { line-height: 1.65; }
+button, input, select, textarea { font: inherit; }
+button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--green);
+  color: white;
+  font-weight: 700;
+}
+button:hover { filter: brightness(.94); }
+button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible {
+  outline: 3px solid #e0a82e;
+  outline-offset: 3px;
+}
+button.secondary {
+  background: var(--mint);
+  color: var(--green-dark);
+  border: 1px solid var(--border);
+}
+button.danger {
+  background: #fde8e8;
+  color: var(--red);
+  border: 1px solid #f8b4b4;
+}
+button.full { width: 100%; margin-top: 8px; }
+.hero {
+  background: var(--mint);
+  border-radius: 22px;
+  padding: 28px;
+  margin-bottom: 22px;
+}
+.hero p { max-width: 650px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.tile {
+  text-align: left;
+  min-height: 145px;
+  background: white;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  padding: 20px;
+  box-shadow: 0 3px 12px #193b360a;
+}
+.tile .emoji { display: block; font-size: 30px; margin-bottom: 8px; }
+.tile strong { display: block; font-size: 18px; }
+.tile span:last-child { display: block; font-weight: 400; margin-top: 5px; }
+.panel {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+.screen { display: none; }
+.screen.active { display: block; }
+label { display: block; font-weight: 700; margin: 15px 0 6px; }
+input, select, textarea {
+  width: 100%;
+  border: 1px solid #b8cec5;
+  background: white;
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--ink);
+}
+textarea { min-height: 100px; resize: vertical; }
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.actions button { flex: 1 1 140px; }
+.notice {
+  background: var(--mint);
+  border-left: 4px solid var(--green);
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 14px 0;
+}
+.muted { color: #526d65; font-size: 14px; }
+#map {
+  height: 380px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  z-index: 1;
+}
+.report-item {
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+}
+.report-photo-preview {
+  margin-top: 10px;
+  position: relative;
+  display: inline-block;
+}
+.report-photo-preview img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  display: block;
+}
+.report-img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  margin-top: 8px;
+  display: block;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.red-cross-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #d32f2f;
+  border: 2px solid #d32f2f;
+  border-radius: 50%;
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 20px;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  cursor: pointer;
+  animation: pulse-pin 2s infinite;
+}
+
+@keyframes pulse-pin {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.popup-resolve {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+.popup-resolve h4 {
+  margin: 0 0 6px;
+  color: #193b36;
+}
+.popup-resolve p {
+  margin: 4px 0 10px;
+  font-size: 13px;
+}
+.popup-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.popup-btns button {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+footer {
+  text-align: center;
+  color: #526d65;
+  font-size: 13px;
+  padding: 20px;
+}
+@media (max-width: 520px) {
+  .grid { grid-template-columns: 1fr; }
+  .hero { padding: 22px; }
+  #map { height: 320px; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="brand">♿ BlindPath</div>
+  <button type="button" data-go="home">Home</button>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <div class="hero">
+      <p><strong>ACCESSIBLE MOBILITY FOR EVERYONE</strong></p>
+      <h1>Move with greater confidence.</h1>
+      <p>BlindPath aims to make everyday journeys more accessible through route planning, voice guidance and community reporting of tactile path problems.</p>
+      <button type="button" data-go="plan">Plan a journey →</button>
+    </div>
+
+    <div class="grid">
+      <button class="tile" type="button" data-go="plan">
+        <span class="emoji">🧭</span>
+        <strong>Plan Journey</strong>
+        <span>Enter your start and destination.</span>
+      </button>
+      <button class="tile" type="button" data-go="navigation">
+        <span class="emoji">🗺️</span>
+        <strong>View Accessibility Map</strong>
+        <span>Check active reported Red Cross hazards.</span>
+      </button>
+      <button class="tile" type="button" data-go="report">
+        <span class="emoji">🦯</span>
+        <strong>Report a Problem</strong>
+        <span>Report blocked, damaged or missing tactile paths.</span>
+      </button>
+      <button class="tile" type="button" data-go="profile">
+        <span class="emoji">👤</span>
+        <strong>My Profile</strong>
+        <span>Access your demo account and preferences.</span>
+      </button>
+    </div>
+
+    <div class="notice">
+      <strong>Community verification</strong>
+      <p>Red Crosses (✖) highlight active hazards. Tap any marker to confirm if the problem has been resolved!</p>
+    </div>
+  </section>
+
+  <!-- LOGIN -->
+  <section id="auth" class="screen">
+    <div class="panel">
+      <h1>Login</h1>
+      <p>Use a demo account for this prototype.</p>
+      <form id="loginForm">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" required autocomplete="email">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" required autocomplete="current-password">
+        <button class="full" type="submit">Login</button>
+      </form>
+      <p id="loginMessage" role="status"></p>
+      <div class="actions">
+        <button class="secondary" type="button" data-go="register">Create an account</button>
+        <button class="secondary" type="button" data-go="home">Back</button>
+      </div>
+      <p class="muted">Demo only: your account is stored locally in this browser. Do not use a real password.</p>
+    </div>
+  </section>
+
+  <!-- REGISTER -->
+  <section id="register" class="screen">
+    <div class="panel">
+      <h1>Create a demo account</h1>
+      <form id="registerForm">
+        <label for="registerName">Name</label>
+        <input id="registerName" required autocomplete="name">
+        <label for="registerEmail">Email</label>
+        <input id="registerEmail" type="email" required autocomplete="email">
+        <label for="registerPassword">Create a password</label>
+        <input id="registerPassword" type="password" required minlength="4" autocomplete="new-password">
+        <button class="full" type="submit">Register</button>
+      </form>
+      <p id="registerMessage" role="status"></p>
+      <button class="secondary" type="button" data-go="auth">Already registered? Login</button>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="profile" class="screen">
+    <div class="panel">
+      <h1>My Profile</h1>
+      <p id="profileInfo">You are using BlindPath as a guest.</p>
+      <div class="actions">
+        <button type="button" data-go="auth">Login</button>
+        <button class="secondary" type="button" data-go="register">Register</button>
+        <button class="secondary" type="button" data-go="verification">Accessibility profile</button>
+        <button class="secondary" type="button" data-go="settings">Settings</button>
+      </div>
+      <button id="logoutButton" class="secondary full" type="button">Logout</button>
+    </div>
+  </section>
+
+  <!-- ACCESSIBILITY PROFILE -->
+  <section id="verification" class="screen">
+    <div class="panel">
+      <h1>Accessibility Profile</h1>
+      <div class="notice">This is a self-declared demo profile, not official OKU verification. Do not enter your IC number or upload personal documents.</div>
+      <form id="accessForm">
+        <label for="accessNeed">What assistance would help you?</label>
+        <select id="accessNeed">
+          <option value="Voice guidance">Voice guidance</option>
+          <option value="Larger text">Larger text</option>
+          <option value="High contrast">High contrast</option>
+          <option value="Other accessibility support">Other accessibility support</option>
+        </select>
+        <button class="full" type="submit">Save preference</button>
+      </form>
+      <p id="accessMessage" role="status"></p>
+      <button class="secondary" type="button" data-go="profile">Back to profile</button>
+    </div>
+  </section>
+
+  <!-- JOURNEY PLANNING -->
+  <section id="plan" class="screen">
+    <div class="panel">
+      <h1>Plan Your Journey</h1>
+      <p>Enter two locations to request a route. You can use a place name or address.</p>
+      <form id="routeForm">
+        <label for="startPoint">Starting point</label>
+        <input id="startPoint" placeholder="e.g. Universiti Malaya" required>
+        <button class="secondary full" id="locationButton" type="button">Use my current location</button>
+
+        <label for="endPoint">Destination</label>
+        <input id="endPoint" placeholder="e.g. KL Sentral" required>
+
+        <label for="travelMode">Travel mode</label>
+        <select id="travelMode">
+          <option value="foot">Walking</option>
+          <option value="driving">Driving</option>
+        </select>
+        <button class="full" type="submit">Find Route & View Hazards</button>
+      </form>
+      <p id="routeMessage" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button class="secondary" type="button" data-go="home">Back to Home</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVIGATION & HAZARDS MAP -->
+  <section id="navigation" class="screen">
+    <div class="panel">
+      <h1>Accessibility Map & Route</h1>
+      <p id="routeSummary">Active hazard points appear as Red Crosses (✖). Click any cross to check or vote if resolved.</p>
+      <div id="map" aria-label="Map showing route and accessibility hazards"></div>
+      <div class="actions">
+        <button type="button" id="speakButton">🔊 Read guidance</button>
+        <button class="secondary" type="button" id="stopSpeakButton">Stop voice</button>
+        <button class="secondary" type="button" data-go="plan">Change journey</button>
+      </div>
+      <p id="navigationMessage" role="status" aria-live="polite"></p>
+      <div class="notice">
+        <strong>Safety reminder</strong>
+        <p>This map is an orientation aid. When a hazard is cleared, vote "Yes" to remove the marker from the map for everyone.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORT -->
+  <section id="report" class="screen">
+    <div class="panel">
+      <h1>Report an Accessibility Problem</h1>
+      <p>Help identify locations that need improvements. An active Red Cross will appear on the map.</p>
+      <form id="reportForm">
+        <label for="reportLocation">Location</label>
+        <input id="reportLocation" required placeholder="Street, building or landmark (e.g., Mid Valley)">
+        
+        <label for="reportType">Problem type</label>
+        <select id="reportType">
+          <option>Blocked tactile path</option>
+          <option>Damaged tactile path</option>
+          <option>Missing tactile path</option>
+          <option>Unsafe pedestrian crossing</option>
+          <option>Other accessibility issue</option>
+        </select>
+
+        <label for="reportPhoto">Take photo or upload image</label>
+        <input id="reportPhoto" type="file" accept="image/*" capture="environment">
+        
+        <div id="photoPreviewContainer" class="report-photo-preview" style="display: none;">
+          <img id="photoPreview" src="" alt="Captured problem preview">
+          <button type="button" id="removePhotoBtn" class="secondary" style="margin-top: 6px; padding: 6px 12px; font-size: 13px;">Remove photo</button>
+        </div>
+
+        <label for="reportDetails">Details</label>
+        <textarea id="reportDetails" placeholder="Describe the obstacle."></textarea>
+        <button class="full" type="submit">Submit Report & Pin Red Cross</button>
+      </form>
+      <p id="reportMessage" role="status"></p>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px;">
+        <h2>Active Community Reports</h2>
+        <button type="button" id="refreshReportsBtn" class="secondary" style="padding: 6px 12px; font-size: 13px;">↻ Refresh</button>
+      </div>
+      <div id="reportList"><p class="muted">Loading reports...</p></div>
+      <button class="secondary" type="button" data-go="home">Back to Home</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="screen">
+    <div class="panel">
+      <h1>Settings</h1>
+      <label for="languageSelect">Voice guidance language</label>
+      <select id="languageSelect">
+        <option value="en-US">English</option>
+        <option value="ms-MY">Bahasa Melayu</option>
+        <option value="zh-CN">中文 (Mandarin)</option>
+      </select>
+      <label for="speechRate">Speech speed</label>
+      <select id="speechRate">
+        <option value="0.8">Slow</option>
+        <option value="1" selected>Normal</option>
+        <option value="1.2">Fast</option>
+      </select>
+      <button id="testVoiceButton" class="full" type="button">Test Voice</button>
+      <p id="settingsMessage" role="status"></p>
+      <p class="muted">Available voices depend on your device and browser.</p>
+      <button class="secondary" type="button" data-go="home">Back to Home</button>
+    </div>
+  </section>
+
+  <!-- COMMUNITY -->
+  <section id="community" class="screen">
+    <div class="panel">
+      <h1>Community & Accessibility</h1>
+      <p>BlindPath is designed to support a community-led approach to more accessible townships.</p>
+      <h3>How Problem Resolution Works</h3>
+      <ul>
+        <li>Active reports place a <strong>Red Cross (✖)</strong> on the community map.</li>
+        <li>Passersby can inspect the location and vote whether the issue is resolved.</li>
+        <li>Once verified resolved, the Red Cross marker and photo are automatically cleared.</li>
+      </ul>
+      <button type="button" data-go="report">Report a Problem</button>
+      <button class="secondary" type="button" data-go="home">Back to Home</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  BlindPath prototype · Accessible mobility for a more inclusive township
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- SUPABASE CONFIGURATION ---
+  var SUPABASE_URL = "https://zaspwodcgdweegslexbd.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_4C7GMf_t8ouhWM7agga5tw_UaYVlf4o";
+
+  var supabase = null;
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
+  // Number of "Yes" votes required to clear an issue completely
+  var RESOLVE_THRESHOLD = 2;
+
+  var currentUser = null;
+  var map = null;
+  var routeLayer = null;
+  var hazardMarkersLayer = null;
+  var startCoords = null;
+  var endCoords = null;
+  var latestRouteText = "";
+  var currentPhotoBase64 = null;
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function showMessage(id, message) {
+    var el = byId(id);
+    if (el) el.textContent = message;
+  }
+
+  function goTo(screenId) {
+    var target = byId(screenId);
+    if (!target) return;
+
+    document.querySelectorAll(".screen").forEach(function (screen) {
+      screen.classList.remove("active");
+    });
+    target.classList.add("active");
+    window.scrollTo(0, 0);
+
+    if (screenId === "profile") updateProfile();
+    if (screenId === "report") renderReports();
+    if (screenId === "navigation") {
+      initMap();
+      setTimeout(function () {
+        if (map) {
+          map.invalidateSize();
+          refreshHazardPins();
+        }
+      }, 200);
+    }
+  }
+
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-go]");
+    if (button) goTo(button.getAttribute("data-go"));
+  });
+
+  function readSaved(key, fallback) {
+    try {
+      var value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  function saveSaved(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function updateProfile() {
+    if (currentUser) {
+      byId("profileInfo").textContent =
+        "Logged in as " + currentUser.name + " (" + currentUser.email + ").";
+    } else {
+      byId("profileInfo").textContent =
+        "You are using BlindPath as a guest. Login or register to try the demo account feature.";
+    }
+  }
+
+  byId("registerForm").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var name = byId("registerName").value.trim();
+    var email = byId("registerEmail").value.trim().toLowerCase();
+    var password = byId("registerPassword").value;
+
+    if (!name || !email || !password) {
+      showMessage("registerMessage", "Please complete all fields.");
+      return;
+    }
+
+    var accounts = readSaved("blindpath_accounts", []);
+    var exists = accounts.some(function (account) {
+      return account.email === email;
+    });
+
+    if (exists) {
+      showMessage("registerMessage", "An account with that email already exists on this browser. Please login.");
+      return;
+    }
+
+    accounts.push({ name: name, email: email, password: password });
+    saveSaved("blindpath_accounts", accounts);
+    currentUser = { name: name, email: email };
+    showMessage("registerMessage", "Demo account created successfully.");
+    updateProfile();
+    goTo("profile");
+  });
+
+  byId("loginForm").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var email = byId("loginEmail").value.trim().toLowerCase();
+    var password = byId("loginPassword").value;
+    var accounts = readSaved("blindpath_accounts", []);
+    var account = accounts.find(function (item) {
+      return item.email === email && item.password === password;
+    });
+
+    if (!account) {
+      showMessage("loginMessage", "Account not found or password incorrect.");
+      return;
+    }
+
+    currentUser = { name: account.name, email: account.email };
+    showMessage("loginMessage", "Login successful.");
+    updateProfile();
+    goTo("profile");
+  });
+
+  byId("logoutButton").addEventListener("click", function () {
+    currentUser = null;
+    updateProfile();
+    goTo("home");
+  });
+
+  byId("accessForm").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var choice = byId("accessNeed").value;
+    saveSaved("blindpath_access_preference", choice);
+    showMessage("accessMessage", "Preference saved: " + choice);
+  });
+
+  async function getActiveReports() {
+    var reports = [];
+    if (supabase) {
+      try {
+        var res = await supabase
+          .from("reports")
+          .select("*")
+          .neq("status", "resolved")
+          .order("id", { ascending: false });
+        if (res.data) reports = res.data;
+      } catch (err) {
+        console.warn("Error fetching Supabase reports, using fallback", err);
+      }
+    }
+    if (!reports.length) {
+      reports = readSaved("blindpath_reports", []).filter(function (r) {
+        return r.status !== "resolved";
+      });
+    }
+    return reports;
+  }
+
+  window.voteResolve = async function (reportId, isResolved) {
+    var reports = await getActiveReports();
+    var report = reports.find(function (r) {
+      return String(r.id) === String(reportId);
+    });
+
+    if (!report) {
+      alert("Report not found or already resolved.");
+      return;
+    }
+
+    if (!isResolved) {
+      alert("Thank you. The report remains active to warn others.");
+      return;
+    }
+
+    var newVotes = (report.resolved_votes || 0) + 1;
+    var isDone = newVotes >= RESOLVE_THRESHOLD;
+
+    if (supabase && report.id && typeof report.id !== "string") {
+      try {
+        if (isDone) {
+          await supabase.from("reports").update({ status: "resolved", resolved_votes: newVotes }).eq("id", report.id);
+        } else {
+          await supabase.from("reports").update({ resolved_votes: newVotes }).eq("id", report.id);
+        }
+      } catch (err) {
+        console.error("Cloud vote update failed", err);
+      }
+    }
+
+    var localReports = readSaved("blindpath_reports", []);
+    var target = localReports.find(function (r) { return String(r.id) === String(reportId); });
+    if (target) {
+      target.resolved_votes = newVotes;
+      if (isDone) target.status = "resolved";
+      saveSaved("blindpath_reports", localReports);
+    }
+
+    if (isDone) {
+      alert("Verified! The issue has received enough confirmation votes. The Red Cross and photo have been cleared.");
+    } else {
+      alert("Vote recorded (" + newVotes + "/" + RESOLVE_THRESHOLD + "). Needs " + (RESOLVE_THRESHOLD - newVotes) + " more confirmation to clear.");
+    }
+
+    renderReports();
+    refreshHazardPins();
+  };
+
+  async function refreshHazardPins() {
+    if (!map) return;
+    if (!hazardMarkersLayer) {
+      hazardMarkersLayer = L.layerGroup().addTo(map);
+    }
+    hazardMarkersLayer.clearLayers();
+
+    var reports = await getActiveReports();
+    reports.forEach(function (report) {
+      if (!report.lat || !report.lon) return;
+
+      var redCrossIcon = L.divIcon({
+        className: "custom-red-cross",
+        html: '<div class="red-cross-pin">✖</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+
+      var marker = L.marker([report.lat, report.lon], { icon: redCrossIcon });
+
+      var votes = report.resolved_votes || 0;
+      var popupHtml = 
+        '<div class="popup-resolve">' +
+          '<h4>⚠️ ' + report.type + '</h4>' +
+          '<p>' + (report.details || report.location) + '</p>' +
+          (report.photo ? '<img src="' + report.photo + '" style="max-width:140px; border-radius:6px; display:block; margin:6px auto;">' : '') +
+          '<hr style="border:0; border-top:1px solid #ddd; margin:8px 0;">' +
+          '<strong>Is this problem resolved?</strong>' +
+          '<p style="font-size:11px; color:#666;">Confirmations: ' + votes + '/' + RESOLVE_THRESHOLD + '</p>' +
+          '<div class="popup-btns">' +
+            '<button onclick="window.voteResolve(\'' + report.id + '\', true)">Yes, Resolved</button>' +
+            '<button class="danger" onclick="window.voteResolve(\'' + report.id + '\', false)">No</button>' +
+          '</div>' +
+        '</div>';
+
+      marker.bindPopup(popupHtml);
+      hazardMarkersLayer.addLayer(marker);
+    });
+  }
+
+  async function renderReports() {
+    var list = byId("reportList");
+    list.innerHTML = "<p class='muted'>Loading active reports...</p>";
+
+    var reports = await getActiveReports();
+    list.textContent = "";
+
+    if (!reports.length) {
+      var empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "No active hazards reported right now. Paths are clear!";
+      list.appendChild(empty);
+      return;
+    }
+
+    reports.forEach(function (report) {
+      var item = document.createElement("div");
+      item.className = "report-item";
+      
+      var headerDiv = document.createElement("div");
+      headerDiv.style.display = "flex";
+      headerDiv.style.justifyContent = "space-between";
+      headerDiv.style.alignItems = "center";
+
+      var title = document.createElement("strong");
+      title.innerHTML = '<span style="color:var(--red); margin-right:4px;">✖</span> ' + report.type;
+
+      var resolveBtn = document.createElement("button");
+      resolveBtn.className = "secondary";
+      resolveBtn.style.padding = "4px 8px";
+      resolveBtn.style.fontSize = "12px";
+      resolveBtn.textContent = "Is it resolved? (" + (report.resolved_votes || 0) + "/" + RESOLVE_THRESHOLD + ")";
+      resolveBtn.onclick = function () {
+        var answer = confirm("Has this hazard at '" + report.location + "' been resolved and cleared?");
+        window.voteResolve(report.id, answer);
+      };
+
+      headerDiv.appendChild(title);
+      headerDiv.appendChild(resolveBtn);
+
+      var location = document.createElement("p");
+      location.textContent = "📍 " + report.location;
+
+      var details = document.createElement("p");
+      details.textContent = report.details || "No extra details provided.";
+
+      item.appendChild(headerDiv);
+      item.appendChild(location);
+      item.appendChild(details);
+
+      if (report.photo) {
+        var img = document.createElement("img");
+        img.src = report.photo;
+        img.alt = "Report Photo";
+        img.className = "report-img";
+        item.appendChild(img);
+      }
+
+      var date = document.createElement("small");
+      date.className = "muted";
+      date.textContent = report.created_at ? new Date(report.created_at).toLocaleString() : (report.date || "");
+      item.appendChild(date);
+
+      list.appendChild(item);
+    });
+  }
+
+  byId("refreshReportsBtn").addEventListener("click", function () {
+    renderReports();
+    refreshHazardPins();
+  });
+
+  byId("reportPhoto").addEventListener("change", function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function (event) {
+      var img = new Image();
+      img.onload = function () {
+        var maxDim = 800;
+        var width = img.width;
+        var height = img.height;
+
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+
+        var canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        currentPhotoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        byId("photoPreview").src = currentPhotoBase64;
+        byId("photoPreviewContainer").style.display = "block";
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  byId("removePhotoBtn").addEventListener("click", function () {
+    currentPhotoBase64 = null;
+    byId("reportPhoto").value = "";
+    byId("photoPreview").src = "";
+    byId("photoPreviewContainer").style.display = "none";
+  });
+
+  byId("reportForm").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var submitButton = byId("reportForm").querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    showMessage("reportMessage", "Geocoding location and placing Red Cross...");
+
+    var locationName = byId("reportLocation").value.trim();
+    var lat = null;
+    var lon = null;
+
+    try {
+      var geo = await geocode(locationName);
+      lat = geo.lat;
+      lon = geo.lon;
+    } catch (e) {
+      lat = 3.1390;
+      lon = 101.6869;
+    }
+
+    var newReport = {
+      id: "rep_" + Date.now(),
+      location: locationName,
+      type: byId("reportType").value,
+      details: byId("reportDetails").value.trim(),
+      photo: currentPhotoBase64,
+      author: currentUser ? currentUser.name : "Anonymous",
+      lat: lat,
+      lon: lon,
+      resolved_votes: 0,
+      status: "open",
+      date: new Date().toLocaleString()
+    };
+
+    if (supabase) {
+      try {
+        await supabase.from("reports").insert([{
+          location: newReport.location,
+          type: newReport.type,
+          details: newReport.details,
+          photo: newReport.photo,
+          author: newReport.author,
+          lat: newReport.lat,
+          lon: newReport.lon,
+          resolved_votes: 0,
+          status: "open"
+        }]);
+      } catch (err) {
+        console.error("Supabase upload failed", err);
+      }
+    }
+
+    var localReports = readSaved("blindpath_reports", []);
+    localReports.push(newReport);
+    saveSaved("blindpath_reports", localReports);
+
+    byId("reportForm").reset();
+    currentPhotoBase64 = null;
+    byId("photoPreview").src = "";
+    byId("photoPreviewContainer").style.display = "none";
+    submitButton.disabled = false;
+
+    showMessage("reportMessage", "Report recorded! A Red Cross has been pinned to the map.");
+    renderReports();
+    refreshHazardPins();
+  });
+
+  function speak(text) {
+    if (!("speechSynthesis" in window)) {
+      showMessage("settingsMessage", "Voice guidance not supported.");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = byId("languageSelect").value;
+    utterance.rate = Number(byId("speechRate").value) || 1;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  byId("testVoiceButton").addEventListener("click", function () {
+    var language = byId("languageSelect").value;
+    var messages = {
+      "en-US": "Hello. Welcome to BlindPath. Please stay aware of your surroundings.",
+      "ms-MY": "Helo. Selamat datang ke BlindPath. Sila sentiasa peka dengan persekitaran anda.",
+      "zh-CN": "你好，欢迎使用 BlindPath。请随时留意周围环境。"
+    };
+    speak(messages[language] || messages["en-US"]);
+    showMessage("settingsMessage", "Playing test voice.");
+  });
+
+  byId("speakButton").addEventListener("click", function () {
+    var text = latestRouteText || "Please plan a journey first. Always verify surrounding footpaths.";
+    speak(text);
+  });
+
+  byId("stopSpeakButton").addEventListener("click", function () {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    showMessage("navigationMessage", "Voice guidance stopped.");
+  });
+
+  function initMap() {
+    if (map || !window.L) return;
+    map = L.map("map").setView([3.139, 101.6869], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    refreshHazardPins();
+  }
+
+  async function geocode(place) {
+    var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(place);
+    var response = await fetch(url);
+    if (!response.ok) throw new Error("Location search failed.");
+    var results = await response.json();
+    if (!results.length) throw new Error('Could not find "' + place + '".');
+    return {
+      lat: Number(results[0].lat),
+      lon: Number(results[0].lon),
+      name: results[0].display_name
+    };
+  }
+
+  byId("locationButton").addEventListener("click", function () {
+    if (!navigator.geolocation) {
+      showMessage("routeMessage", "Location access not supported.");
+      return;
+    }
+    showMessage("routeMessage", "Getting location...");
+    navigator.geolocation.getCurrentPosition(function (position) {
+      startCoords = {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+        name: "Current location"
+      };
+      byId("startPoint").value = position.coords.latitude.toFixed(5) + ", " + position.coords.longitude.toFixed(5);
+      showMessage("routeMessage", "Current location set.");
+    }, function () {
+      showMessage("routeMessage", "Could not access location.");
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  });
+
+  byId("routeForm").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var startText = byId("startPoint").value.trim();
+    var endText = byId("endPoint").value.trim();
+    var mode = byId("travelMode").value;
+
+    var submitButton = byId("routeForm").querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    showMessage("routeMessage", "Searching route & hazards...");
+
+    try {
+      var start = (startCoords && startText.indexOf(",") !== -1) ? startCoords : await geocode(startText);
+      var end = await geocode(endText);
+
+      startCoords = start;
+      endCoords = end;
+
+      initMap();
+      if (routeLayer) {
+        map.removeLayer(routeLayer);
+        routeLayer = null;
+      }
+
+      var serviceBase = mode === "foot"
+        ? "https://routing.openstreetmap.de/routed-foot/route/v1/driving/"
+        : "https://router.project-osrm.org/route/v1/driving/";
+
+      var routeUrl = serviceBase + start.lon + "," + start.lat + ";" + end.lon + "," + end.lat + "?overview=full&geometries=geojson";
+      var response = await fetch(routeUrl);
+      var data = await response.json();
+
+      if (!data.routes || !data.routes.length) throw new Error("No route found.");
+
+      var route = data.routes[0];
+      routeLayer = L.geoJSON(route.geometry, {
+        style: { color: "#176b5b", weight: 6, opacity: 0.85 }
+      }).addTo(map);
+
+      L.marker([start.lat, start.lon]).addTo(map).bindPopup("Start");
+      L.marker([end.lat, end.lon]).addTo(map).bindPopup("Destination");
+      map.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
+
+      var distanceKm = (route.distance / 1000).toFixed(1);
+      var durationMin = Math.round(route.duration / 60);
+
+      latestRouteText = "Your route is approximately " + distanceKm + " km and " + durationMin + " minutes. Watch out for Red Cross obstacle markers.";
+      byId("routeSummary").textContent = "From: " + startText + " | To: " + endText + " | Distance: " + distanceKm + " km | Time: " + durationMin + " mins.";
+
+      goTo("navigation");
+    } catch (err) {
+      showMessage("routeMessage", err.message || "Failed to find route.");
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+  updateProfile();
+  renderReports();
+})();
+</script>
+</body>
+</html>
